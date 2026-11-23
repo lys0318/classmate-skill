@@ -64,6 +64,57 @@ check_S4() {
   valid
 }
 
+prep_app() {
+  mkdir -p "$P" "$T/home/.claude"; cp -r "$REPO/tests/fixtures/sample-app/." "$P/"; enabled_project 중급
+  printf '%s\n' "$BLOCK" > "$T/home/.claude/CLAUDE.md"
+}
+qcount()   { cat "$@" 2>/dev/null | grep -c '^### Q'; }
+nfeat()    { ls "$C/features" 2>/dev/null | wc -l | tr -d ' '; }
+status()   { sed -n 's/^status: //p' "$1" 2>/dev/null; }
+
+prep_S5() { prep_app; }
+check_S5() {
+  local f="$C/features/001-할-일-추가.md"
+  expect "노트 001-할-일-추가.md" "$([ -f "$f" ] && echo 있음 || echo 없음)" "있음"
+  valid
+  expect "문제 3개" "$(qcount "$f")" 3
+  expect "객관식 2개" "$(grep -c '^### Q.*객관식$' "$f" 2>/dev/null)" 2
+  expect "status" "$(status "$f")" "done"
+}
+
+prep_S6() { prep_app; }
+check_S6() {
+  local f="$C/features/001-할-일-추가.md"
+  valid
+  expect "status" "$(status "$f")" "deferred"
+  expect "미응답 3개" "$(grep -c '^결과: 미응답' "$f" 2>/dev/null)" 3
+}
+
+prep_S7()  { prep_app; }
+check_S7() { expect "노트 없음" "$(nfeat)" 0; }
+prep_S7b() { prep_app; printf '{"enabled": false, "level": "중급"}\n' > "$C/config.json"; }
+check_S7b() { expect "노트 없음" "$(nfeat)" 0; }
+
+prep_S8() { prep_app; mkdir -p "$C/features"; cp "$REPO/tests/fixtures/deferred-note.md" "$C/features/001-할-일-추가.md"; }
+check_S8() {
+  local f="$C/features/001-할-일-추가.md"
+  valid
+  expect "status" "$(status "$f")" "done"
+  expect "미응답 0개" "$(grep -c '^결과: 미응답' "$f")" 0
+}
+
+prep_S9()  { prep_app; }
+check_S9() { expect "노트 없음" "$(nfeat)" 0; }
+
+prep_S10() { prep_app; }
+check_S10() {
+  expect "노트 001" "$(ls "$C"/features/001-*.md >/dev/null 2>&1 && echo 있음 || echo 없음)" "있음"
+  expect "노트 002" "$(ls "$C"/features/002-*.md >/dev/null 2>&1 && echo 있음 || echo 없음)" "있음"
+  local n; n=$(qcount "$C"/features/*.md)
+  expect "전체 문제 3~5개" "$([ "$n" -ge 3 ] && [ "$n" -le 5 ] && echo 범위 || echo "$n")" "범위"
+  valid
+}
+
 "${cmd}_${s}"
 if [ "$cmd" = check ]; then
   [ $fail -eq 0 ] && echo "$s PASS" || echo "$s FAIL"
