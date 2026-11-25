@@ -1,7 +1,7 @@
 ---
 name: classmate
-description: 바이브코딩 학습 도우미. 기능 하나를 완성했을 때 방금 만든 것을 짧게 설명하고 이해도 퀴즈를 내며, 프로젝트를 마무리할 때 전체 구조 복습·종합 퀴즈·이해도 리포트를 만든다. 현재 프로젝트에 .classmate/config.json이 있고 enabled가 true인 상태에서 기능 하나를 완성했을 때 사용한다. 사용자가 classmate를 부를 때(on, off, level, mode, review, learn, 또는 인자 없이)도 사용한다.
-argument-hint: "[on | off | level 입문|중급|고급 | review]"
+description: 바이브코딩 학습 도우미. 기능 하나를 완성했을 때 방금 만든 것을 짧게 설명하고 이해도 퀴즈를 내며, 프로젝트를 마무리할 때 전체 구조 복습·종합 퀴즈·이해도 리포트를 만든다. 이미 완성된 프로젝트(남이 만든 프로젝트 포함)도 장 단위로 쉽게 설명하고 퀴즈로 공부시킨다. 현재 프로젝트에 .classmate/config.json이 있고 enabled가 true인 상태에서 기능 하나를 완성했을 때 사용한다. 사용자가 classmate를 부를 때(on, off, level, mode, review, learn, 또는 인자 없이)도 사용한다.
+argument-hint: "[on | off | level 입문|중급|고급 | mode 가볍게|꼼꼼하게|직접만 | review | learn [장 번호]]"
 ---
 
 # classmate
@@ -19,6 +19,7 @@ argument-hint: "[on | off | level 입문|중급|고급 | review]"
 | `level <난이도>` | 아래 [난이도 바꾸기](#난이도-바꾸기-level) |
 | `mode <모드>` | 아래 [모드 바꾸기](#모드-바꾸기-mode) |
 | `review` | `references/review.md`를 읽고 따른다 |
+| `learn [장 번호]` | 완성된 프로젝트를 장 단위로 공부한다. `references/learn.md`를 읽고 따른다. `on` 없이도 동작한다 |
 | 없음 | `references/explain-and-quiz.md`의 "직접 불렀을 때"를 따른다 |
 | 그 밖 | 이 표를 보여주고 무엇을 원하는지 묻는다 |
 
