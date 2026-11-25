@@ -115,6 +115,26 @@ check_S10() {
   valid
 }
 
+prep_S11() {
+  mkdir -p "$P" "$T/home/.claude"; cp -r "$REPO/tests/fixtures/sample-app/." "$P/"
+  cp -r "$REPO/tests/fixtures/classmate-review" "$C"
+  printf '%s\n' "$BLOCK" > "$T/home/.claude/CLAUDE.md"
+}
+check_S11() {
+  valid
+  local n_rev; n_rev=$(ls "$C"/reviews/*.md 2>/dev/null | wc -l | tr -d ' ')
+  expect "복습 기록 1개" "$n_rev" 1
+  local q; q=$(qcount "$C"/reviews/*.md)
+  # 미룬 문제 3개는 원래 노트(002)에 기록되므로, 복습 기록의 새 문제와 합쳐 5~10개
+  expect "새 문제 2개 이상, 합계 5~10" "$([ "$q" -ge 2 ] && [ $((q + 3)) -le 10 ] && echo 범위 || echo "$q")" "범위"
+  expect "002 status" "$(status "$C/features/002-할-일-삭제.md")" "done"
+  expect "report.html = 틀 그대로" "$(cmp -s "$REPO/skills/classmate/assets/report-template.html" "$C/report.html" && echo 같음 || echo 다름)" "같음"
+  expect "할 일 삭제 이유 = 기록 없음" "$(node -e '
+    const vm=require("vm"),fs=require("fs");const c=vm.createContext({window:{}});
+    vm.runInContext(fs.readFileSync(process.argv[1],"utf8"),c);
+    const d=(c.window.CLASSMATE_DATA.decisions||[]).find(x=>x.feature==="할 일 삭제");console.log(d?d.why:"(없음)")' "$C/report-data.js" 2>/dev/null)" "기록 없음"
+}
+
 "${cmd}_${s}"
 if [ "$cmd" = check ]; then
   [ $fail -eq 0 ] && echo "$s PASS" || echo "$s FAIL"

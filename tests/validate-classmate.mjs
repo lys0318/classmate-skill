@@ -2,8 +2,11 @@
 // 사용법: node tests/validate-classmate.mjs <.classmate 경로>  → 문제 없으면 OK(종료 코드 0), 있으면 목록(종료 코드 1)
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import vm from 'node:vm';
 
 const LEVELS = ['입문', '중급', '고급'];
+const AREAS = ['구조', '코드', '데이터 흐름', '설계 이유', '문제 해결'];
+const TEMPLATE = new URL('../skills/classmate/assets/report-template.html', import.meta.url);
 const RESULTS = ['맞음', '부분', '틀림', '미응답'];
 const Q_HEADER = /^### Q\d+ \[(구조|코드|데이터 흐름|설계 이유|문제 해결)\] (객관식|서술형)$/;
 const read = (p) => readFileSync(p, 'utf8').replace(/^﻿/, '').replace(/\r\n/g, '\n');
@@ -80,6 +83,71 @@ function checkBase(dir, problems) {
   if (!LEVELS.includes(cfg.level)) problems.push(`config.json: level이 ${LEVELS.join('|')} 중 하나가 아님`);
 }
 
+function checkReviews(dir, problems) {
+  const rdir = join(dir, 'reviews');
+  if (!existsSync(rdir)) return;
+  for (const f of readdirSync(rdir).filter((f) => f.endsWith('.md'))) {
+    const label = `reviews/${f}`;
+    if (!/^\d{4}-\d{2}-\d{2}(-\d+)?\.md$/.test(f)) problems.push(`${label}: 파일 이름이 YYYY-MM-DD(-N).md 형식이 아님`);
+    const text = read(join(rdir, f));
+    const fm = frontmatter(text);
+    if (!fm) { problems.push(`${label}: frontmatter 없음`); continue; }
+    if (fm.type !== 'review') problems.push(`${label}: type이 review가 아님`);
+    if (fm.date !== f.slice(0, 10)) problems.push(`${label}: date(${fm.date})가 파일 이름 날짜와 다름`);
+    const at = text.search(/^## 퀴즈$/m);
+    if (at < 0) problems.push(`${label}: '## 퀴즈' 없음`);
+    else checkQuiz(text.slice(at), label, problems);
+  }
+}
+
+function checkQuestions(qs, label, problems) {
+  if (!Array.isArray(qs)) return problems.push(`${label}: questions가 배열이 아님`);
+  qs.forEach((q, n) => {
+    const l = `${label} 문제 ${n + 1}`;
+    if (!AREAS.includes(q?.area)) problems.push(`${l}: area '${q?.area}'가 ${AREAS.join('|')} 중 하나가 아님`);
+    if (!['객관식', '서술형'].includes(q?.type)) problems.push(`${l}: type이 객관식|서술형이 아님`);
+    if (!RESULTS.includes(q?.result)) problems.push(`${l}: result '${q?.result}'가 ${RESULTS.join('|')} 중 하나가 아님`);
+    for (const k of ['question', 'answer', 'userAnswer', 'explanation']) {
+      if (typeof q?.[k] !== 'string') problems.push(`${l}: ${k}가 문자열이 아님`);
+    }
+  });
+}
+
+// review가 쓰는 report-data.js를 실행해 형식을 확인하고, 리포트 틀의 점수 계산이 그 데이터로 동작하는지 본다
+function checkReportData(dir, problems) {
+  const p = join(dir, 'report-data.js');
+  if (!existsSync(p)) return;
+  const ctx = vm.createContext({ window: {} });
+  try { vm.runInContext(read(p), ctx); } catch (e) { return problems.push(`report-data.js 실행 오류: ${e.message}`); }
+  const d = ctx.window.CLASSMATE_DATA;
+  if (!d || typeof d !== 'object') return problems.push('report-data.js: window.CLASSMATE_DATA 없음');
+  for (const k of ['project', 'summary']) if (typeof d[k] !== 'string') problems.push(`report-data.js: ${k}가 문자열이 아님`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d.generatedAt ?? '')) problems.push('report-data.js: generatedAt이 YYYY-MM-DD가 아님');
+  if (!LEVELS.includes(d.level)) problems.push('report-data.js: level 오류');
+  if (typeof d.structure?.mermaid !== 'string' || typeof d.structure?.text !== 'string') problems.push('report-data.js: structure.mermaid·text가 문자열이 아님');
+  for (const k of ['flows', 'decisions', 'features', 'reviews', 'nextSteps']) {
+    if (!Array.isArray(d[k])) problems.push(`report-data.js: ${k}가 배열이 아님`);
+  }
+  (d.decisions ?? []).forEach((x, n) => {
+    if (typeof x?.feature !== 'string' || typeof x?.why !== 'string') problems.push(`report-data.js: decisions ${n + 1}에 feature·why 문자열이 없음`);
+  });
+  (d.features ?? []).forEach((f, n) => {
+    const l = `report-data.js features ${n + 1}`;
+    if (!/^\d{3}$/.test(f?.id ?? '')) problems.push(`${l}: id가 3자리가 아님`);
+    if (typeof f?.name !== 'string') problems.push(`${l}: name 없음`);
+    if (!['done', 'deferred'].includes(f?.status)) problems.push(`${l}: status 오류`);
+    checkQuestions(f?.questions, l, problems);
+  });
+  (d.reviews ?? []).forEach((r, n) => checkQuestions(r?.questions, `report-data.js reviews ${n + 1}`, problems));
+  const logic = readFileSync(TEMPLATE, 'utf8').match(/<script id="classmate-logic">([\s\S]*?)<\/script>/)?.[1];
+  try {
+    vm.runInContext(logic, ctx);
+    ctx.window.ClassmateReport.computeAreaScores(d);
+  } catch (e) {
+    problems.push(`리포트 틀의 점수 계산이 이 데이터로 실패함: ${e.message}`);
+  }
+}
+
 const dir = process.argv[2];
 if (!dir) {
   console.error('사용법: node tests/validate-classmate.mjs <.classmate 경로>');
@@ -88,6 +156,8 @@ if (!dir) {
 const problems = [];
 checkBase(dir, problems);
 checkFeatures(dir, problems);
+checkReviews(dir, problems);
+checkReportData(dir, problems);
 if (problems.length) {
   console.log(problems.map((p) => `- ${p}`).join('\n'));
   process.exit(1);
