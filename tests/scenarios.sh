@@ -118,6 +118,7 @@ check_S10() {
 prep_S11() {
   mkdir -p "$P" "$T/home/.claude"; cp -r "$REPO/tests/fixtures/sample-app/." "$P/"
   cp -r "$REPO/tests/fixtures/classmate-review" "$C"
+  printf '*\n' > "$C/.gitignore"  # fixture에 두면 자기 폴더를 git에서 숨기므로 여기서 만든다
   printf '%s\n' "$BLOCK" > "$T/home/.claude/CLAUDE.md"
 }
 check_S11() {
@@ -134,6 +135,38 @@ check_S11() {
     vm.runInContext(fs.readFileSync(process.argv[1],"utf8"),c);
     const d=(c.window.CLASSMATE_DATA.decisions||[]).find(x=>x.feature==="할 일 삭제");console.log(d?d.why:"(없음)")' "$C/report-data.js" 2>/dev/null)" "기록 없음"
 }
+
+prep_S12() { prep_app; mkdir -p "$C/features"; cp "$REPO/tests/fixtures/backslash-note.md" "$C/features/001-할-일-추가.md"; }
+check_S12() {
+  valid
+  # 스크립트는 표준 입력으로 넘긴다: Windows에서 -e 인자로 넘기면 백슬래시가 바뀐다
+  local out; out=$(node - "$C/report-data.js" 2>&1 <<'JS'
+const vm = require('vm'), fs = require('fs');
+const c = vm.createContext({ window: {} });
+vm.runInContext(fs.readFileSync(process.argv[2], 'utf8'), c);
+const qs = (c.window.CLASSMATE_DATA.features || []).flatMap((f) => f.questions || []);
+const bs = qs.some((q) => (q.explanation || '').includes("split('\\n')") && (q.explanation || '').includes('C:\\temp\\notes.txt'));
+const w = qs.find((q) => q.type === '객관식' && q.result === '틀림');
+const txt = (s) => /[가-힣A-Za-z]/.test((s || '').replace(/^[①②③④]\s*/, ''));
+console.log([bs ? '백슬래시OK' : '백슬래시깨짐', w && txt(w.answer) && txt(w.userAnswer) ? '보기글OK' : '번호만'].join(' '));
+JS
+)
+  expect "리포트 데이터: 백슬래시 그대로, 객관식 답에 보기 글" "$out" "백슬래시OK 보기글OK"
+}
+
+prep_S13() { prep_app; }
+check_S13() {
+  local f="$C/features/001-할-일-추가.md"
+  valid
+  expect "노트 저장됨" "$([ -f "$f" ] && echo 있음 || echo 없음)" "있음"
+  expect "status" "$(status "$f")" "deferred"
+  expect "미응답 3개" "$(grep -c '^결과: 미응답' "$f" 2>/dev/null)" 3
+  expect "코드 변경 없음" "$(diff -r "$REPO/tests/fixtures/sample-app" "$P" -x .classmate >/dev/null && echo 없음 || echo 있음)" "없음"
+}
+
+[ "$cmd" = prep ] && set -e  # 준비가 하나라도 실패하면 종료 코드 1
+prep_S14()  { prep_app; }
+check_S14() { check_S13; }
 
 "${cmd}_${s}"
 if [ "$cmd" = check ]; then

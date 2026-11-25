@@ -59,7 +59,9 @@ date: 2026-11-25
 ## 5. 리포트
 
 1. **틀 복사:** 이 스킬 폴더의 `assets/report-template.html`을 내용 그대로 `.classmate/report.html`로 복사한다(있으면 덮어쓴다). 틀은 고치지 않는다.
-2. **데이터 쓰기:** `.classmate/report-data.js`를 아래 형식으로 쓴다(있으면 덮어쓴다). JSON 문법을 지키는 할당문 하나다. 문자열 안의 줄바꿈은 `\n`, 큰따옴표는 `\"`로 쓴다.
+2. **데이터 쓰기:** `.classmate/report-data.js`를 아래 형식으로 쓴다(있으면 덮어쓴다). JSON 문법을 지키는 할당문 하나다.
+   - 문자열은 JSON 규칙대로 쓴다: 백슬래시는 `\\`, 큰따옴표는 `\"`, 줄바꿈은 `\n`. 코드나 Windows 경로에 든 백슬래시도 모두 `\\`로 쓴다. 예: 노트의 `split('\n')`은 `split('\\n')`, `C:\temp`는 `C:\\temp`. 하나라도 빠지면 글자가 바뀌거나 리포트 전체가 열리지 않는다.
+   - 파일 쓰기 도구로 쓴다. 셸의 `echo`·heredoc은 백슬래시를 바꿀 수 있다.
 
 ```js
 window.CLASSMATE_DATA = {
@@ -75,7 +77,7 @@ window.CLASSMATE_DATA = {
   "decisions": [{ "feature": "할 일 추가", "why": "순서 유지가 쉬운 배열을 택했다" }],
   "features": [
     { "id": "001", "name": "할 일 추가", "date": "2026-11-24", "status": "done", "questions": [
-      { "area": "데이터 흐름", "type": "객관식", "question": "…", "answer": "②", "userAnswer": "③", "result": "틀림", "explanation": "…" }
+      { "area": "데이터 흐름", "type": "객관식", "question": "…", "answer": "② todos 배열", "userAnswer": "③ 서버", "result": "틀림", "explanation": "…" }
     ] }
   ],
   "reviews": [{ "date": "2026-11-25", "questions": [] }],
@@ -88,7 +90,7 @@ window.CLASSMATE_DATA = {
 | 필드 | 채우는 법 |
 |---|---|
 | `features` | 학습 노트마다 하나. `id`·`date`·`status`는 frontmatter 그대로, `name`은 `feature` 값. 갱신한 뒤의 노트 기준 |
-| `questions` | 노트의 문제마다 하나. 헤더의 영역·유형을 `area`·`type`에, `문제`→`question`, `정답`→`answer`, `내 답`→`userAnswer`(비었으면 `""`), `결과`→`result`, `해설`→`explanation`(없으면 `""`). `보기`는 넣지 않는다 |
+| `questions` | 노트의 문제마다 하나. 헤더의 영역·유형을 `area`·`type`에, `문제`→`question`, `정답`→`answer`, `내 답`→`userAnswer`(비었으면 `""`), `결과`→`result`, `해설`→`explanation`(없으면 `""`). 객관식의 `answer`·`userAnswer`는 번호 뒤에 노트의 `보기`에서 그 번호의 글을 붙인다(예: `② todos 배열`). 보기 전체 목록은 넣지 않는다 |
 | `reviews` | `reviews/*.md` 파일마다 하나(이번 것 포함). `date`는 frontmatter 값 |
 | `decisions` | 노트마다 `{ "feature": 기능 이름, "why": 노트의 이유 }`. 이유가 없거나 `기록 없음`이면 `"기록 없음"` |
 | `structure.mermaid` | 2절 구조를 Mermaid `graph TD`로. 노드 10개 이내, 노드 이름에 따옴표·괄호·꺾쇠를 쓰지 않는다 |
