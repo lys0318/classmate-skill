@@ -159,3 +159,47 @@ S1·S3의 답 끝에 모드 `가볍게`, S2의 답 끝에 모드 `꼼꼼하게`�
 - INPUT: `/classmate mode 직접만`
 - ANSWERS: 없음
 - 확인: 바뀐 모드를 알리고, 다른 설정은 그대로 두었다.
+
+### S23 review에서 기록만 된 기능 다루기
+- AGENT: Claude Code
+- CONTEXT: S11과 같다. 단, 노트 002(할 일 삭제)는 `noted`(기록만, 이유 기록 없음)다.
+- INPUT: `/classmate review`
+- ANSWERS: 객관식은 모두 `1`, 서술형은 모두 `모르겠다`
+- 확인: 002에 대한 문제를 냈고, `설계 이유` 문제는 내지 않았다.
+
+### S24 직접만 모드에서 직접 부르기
+- AGENT: Claude Code
+- CONTEXT: 없음(새 세션). config 모드는 `직접만`. 노트 001(할 일 추가)이 `noted`다. git 저장소가 아니다.
+- INPUT: `/classmate`
+- ANSWERS: `지금`, `1`, `1`, `모르겠다`, 이후 질문에는 `이번엔 여기까지`
+- 확인: 기록만 된 001을 먼저 알렸고, 모드와 상관없이 퀴즈를 진행했다.
+
+S19~S22는 learn 시나리오다. 프로젝트는 sample-app의 복사본이고 git 저장소가 아니며, 전역 지침 파일은 없다.
+
+### S19 learn 시작 (다른 사람의 프로젝트)
+- AGENT: Claude Code
+- CONTEXT: 없음. `.classmate/`가 없다. `node_modules/big/index.js`(2000줄)가 있다.
+- INPUT: `/classmate learn`
+- ANSWERS: `중급`, `다른 사람`, 어느 장부터 볼지에는 `다음에 할게요`
+- 확인: 지도에 무엇·실행·구조가 있다. `node_modules`를 읽지 않았다(읽은 파일 목록 보고).
+
+### S20 learn 이어서 (다른 사람)
+- AGENT: Claude Code
+- CONTEXT: 없음. `learn.md`가 있고 모든 장이 `대기`다(owner 다른 사람).
+- INPUT: `/classmate learn`
+- ANSWERS: `지금`, `1`, `1`, `모르겠다`
+- 확인: 1장 범위(index.html) 밖의 파일을 거의 읽지 않았다. 다음 장을 제안했다.
+
+### S21 learn 장 지정 (본인)
+- AGENT: Claude Code
+- CONTEXT: 없음. `learn.md`가 있고 모든 장이 `대기`다(owner 본인).
+- INPUT: `/classmate learn 2`
+- ANSWERS: 기억을 묻는 질문에 `순서를 지키기 쉬워서 배열로 했어요`, 지금/나중에에 `나중에`
+- 확인: 설계 이유를 기억나는지 한 번 물었다.
+
+### S22 모든 장을 끝낸 뒤 다시 부르기
+- AGENT: Claude Code
+- CONTEXT: 없음. `learn.md`의 모든 장이 `완료`다(owner 다른 사람).
+- INPUT: `/classmate learn`
+- ANSWERS: 다른 영역을 더 볼지에 `아니요`
+- 확인: review를 제안했다.

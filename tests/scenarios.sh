@@ -202,6 +202,91 @@ check_S18() {
   expect "level 그대로" "$(cfg level)" "중급"
 }
 
+prep_S23() {
+  prep_S11
+  sed -e 's/^id: 001/id: 002/' -e 's/^feature: .*/feature: 할 일 삭제/' \
+      -e 's/^- 흐름: .*/- 흐름: 삭제 버튼 → removeTodo(id) → todos 배열에서 제거 → render()/' \
+      -e 's/^- 이유: .*/- 이유: 기록 없음/' -e 's/^- 막혔던 것: .*/- 막혔던 것: 없음/' \
+      "$REPO/tests/fixtures/noted-note.md" > "$C/features/002-할-일-삭제.md"
+}
+check_S23() {
+  local f="$C/features/002-할-일-삭제.md" q2 qr
+  valid
+  expect "noted 노트 0개" "$(nnoted)" 0
+  q2=$(qcount "$f"); qr=$(qcount "$C"/reviews/*.md)
+  expect "002에 문제 1개 이상" "$([ "$q2" -ge 1 ] && echo 있음 || echo "$q2")" "있음"
+  expect "002 문제 + 복습 문제 5~10" "$([ $((q2 + qr)) -ge 5 ] && [ $((q2 + qr)) -le 10 ] && echo 범위 || echo "$((q2 + qr))")" "범위"
+  expect "report-data에 noted 없음" "$(grep -c '"status": *"noted"' "$C/report-data.js" 2>/dev/null || true)" 0
+}
+
+prep_S24() { prep_app; set_mode 직접만; mkdir -p "$C/features"; cp "$REPO/tests/fixtures/noted-note.md" "$C/features/001-할-일-추가.md"; }
+check_S24() {
+  local f="$C/features/001-할-일-추가.md"
+  valid
+  expect "status" "$(status "$f")" "done"
+  expect "문제 3개" "$(qcount "$f")" 3
+}
+
+# learn용 준비: $1 = owner(없으면 .classmate를 만들지 않음), $2 = 모든 장의 상태
+prep_learn() {
+  mkdir -p "$P" "$T/home"; cp -r "$REPO/tests/fixtures/sample-app/." "$P/"
+  [ -z "${1:-}" ] && return 0
+  mkdir -p "$C"; printf '*\n' > "$C/.gitignore"
+  printf '{"enabled": false, "level": "중급", "mode": "가볍게"}\n' > "$C/config.json"
+  sed -e "s/^owner: OWNER/owner: $1/" -e "s/| 대기 |\$/| $2 |/" "$REPO/tests/fixtures/learn-map.md" > "$C/learn.md"
+}
+chstate() { sed -n "s/^| $1 | .* | \(대기\|완료\) |\$/\1/p" "$C/learn.md" 2>/dev/null; }
+note1()   { ls "$C"/features/001-*.md 2>/dev/null | head -1; }
+
+prep_S19() {
+  prep_learn
+  mkdir -p "$P/node_modules/big"
+  local i; for i in $(seq 1 2000); do echo "module.exports.f$i = () => $i;"; done > "$P/node_modules/big/index.js"
+}
+check_S19() {
+  local n w
+  valid
+  expect "enabled" "$(cfg enabled)" "false"
+  expect "mode" "$(cfg mode)" "가볍게"
+  expect "owner" "$(sed -n 's/^owner: //p' "$C/learn.md" 2>/dev/null)" "다른 사람"
+  n=$(grep -cE '^\| [0-9]+ \|' "$C/learn.md" 2>/dev/null); w=$(grep -cE '^\| [0-9]+ \|.*\| 대기 \|$' "$C/learn.md" 2>/dev/null)
+  expect "장 3~8개, 모두 대기" "$([ "${n:-0}" -ge 3 ] && [ "${n:-0}" -le 8 ] && [ "$n" = "$w" ] && echo ok || echo "$n/$w")" "ok"
+  expect "전역 지침 안 건드림" "$( { [ -e "$T/home/.claude" ] || [ -e "$T/home/.codex" ]; } && echo 있음 || echo 없음)" "없음"
+  expect "노트 없음" "$(nfeat)" 0
+}
+
+prep_S20() { prep_learn "다른 사람" 대기; }
+check_S20() {
+  local f; f=$(note1)
+  valid
+  expect "노트 001" "$([ -n "$f" ] && echo 있음 || echo 없음)" "있음"
+  expect "kind" "$(sed -n 's/^kind: //p' "$f" 2>/dev/null)" "learn"
+  expect "chapter" "$(sed -n 's/^chapter: //p' "$f" 2>/dev/null)" "1"
+  expect "status" "$(status "$f")" "done"
+  expect "문제 3개" "$(qcount "$f")" 3
+  expect "이유는 추정 또는 기록 없음" "$(grep -qE '^- 이유: (\(추정|기록 없음)' "$f" 2>/dev/null && echo ok || echo 다름)" "ok"
+  expect "1장 완료" "$(chstate 1)" "완료"
+  expect "2장 대기" "$(chstate 2)" "대기"
+}
+
+prep_S21() { prep_learn 본인 대기; }
+check_S21() {
+  local f; f=$(note1)
+  valid
+  expect "chapter" "$(sed -n 's/^chapter: //p' "$f" 2>/dev/null)" "2"
+  expect "status" "$(status "$f")" "deferred"
+  expect "이유에 본인 기억" "$(grep -q '^- 이유: (본인 기억)' "$f" 2>/dev/null && echo ok || echo 다름)" "ok"
+  expect "2장 완료" "$(chstate 2)" "완료"
+  expect "1장 대기" "$(chstate 1)" "대기"
+}
+
+prep_S22() { prep_learn "다른 사람" 완료; cp "$C/learn.md" "$T/learn.orig.md"; }
+check_S22() {
+  valid
+  expect "learn.md 그대로" "$(cmp -s "$T/learn.orig.md" "$C/learn.md" && echo 같음 || echo 다름)" "같음"
+  expect "노트 없음" "$(nfeat)" 0
+}
+
 [ "$cmd" = prep ] && set -e  # 준비가 하나라도 실패하면 종료 코드 1
 prep_S14()  { prep_app; }
 check_S14() { check_S13; }
