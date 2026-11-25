@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>classmate 리포트</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --card: #ffffff; --fg: #1d1d1b; --muted: #6a6a66; --line: #e4e3df;
+    --accent: #3157d5; --good: #1f8a4c; --mid: #b7791f; --bad: #c2412d; --bar: #e9e8e4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141413; --card: #1d1d1b; --fg: #ecebe7; --muted: #9d9c97; --line: #2f2e2b;
+      --accent: #8aa4ff; --good: #5cc48a; --mid: #e0b257; --bad: #f08872; --bar: #2b2a27;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 40px 16px 64px; }
+  header { margin-bottom: 28px; }
+  .eyebrow { margin: 0; color: var(--accent); font-size: 0.85rem; font-weight: 600; }
+  h1 { margin: 4px 0 8px; font-size: 1.75rem; line-height: 1.3; }
+  h2 { margin: 0 0 14px; font-size: 1.1rem; }
+  p { margin: 0; }
+  .meta, .muted { color: var(--muted); }
+  .meta { margin-top: 8px; font-size: 0.9rem; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+  ol, ul { margin: 0; padding-left: 1.25em; }
+  li + li { margin-top: 6px; }
+  pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: 0.9rem/1.6 ui-monospace, Consolas, monospace; }
+  .diagram { overflow-x: auto; }
+  .diagram svg { max-width: 100%; height: auto; }
+  dl { margin: 0; display: grid; grid-template-columns: minmax(6em, max-content) 1fr; gap: 8px 16px; }
+  dt { font-weight: 600; }
+  dd { margin: 0; overflow-wrap: anywhere; }
+  .score { display: grid; grid-template-columns: 6.5em 1fr 5.5em; align-items: center; gap: 12px; }
+  .score + .score { margin-top: 10px; }
+  .bar { height: 10px; background: var(--bar); border-radius: 999px; overflow: hidden; }
+  .bar > span { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
+  .value { text-align: right; font-variant-numeric: tabular-nums; }
+  .timeline li { overflow-wrap: anywhere; }
+  .badge { display: inline-block; margin-left: 6px; padding: 0 8px; border-radius: 999px; font-size: 0.8rem; border: 1px solid var(--line); color: var(--muted); }
+  .wrong + .wrong { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .wrong .tag { font-size: 0.8rem; color: var(--muted); }
+  .wrong .q { margin: 4px 0 8px; font-weight: 600; overflow-wrap: anywhere; }
+  .wrong dl { grid-template-columns: max-content 1fr; font-size: 0.95rem; }
+  .result-틀림 { color: var(--bad); }
+  .result-부분 { color: var(--mid); }
+  @media (max-width: 480px) {
+    .score { grid-template-columns: 5.5em 1fr 4.5em; gap: 8px; }
+    dl { grid-template-columns: 1fr; gap: 2px; }
+    dd { margin-bottom: 8px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">classmate 학습 리포트</p>
+    <h1 id="project"></h1>
+    <p id="summary"></p>
+    <p class="meta" id="meta"></p>
+  </header>
+  <section>
+    <h2>프로젝트 구조</h2>
+    <div class="diagram"><pre class="mermaid" id="mermaid"></pre></div>
+    <pre id="structure-text" hidden></pre>
+  </section>
+  <section><h2>핵심 흐름</h2><ol id="flows"></ol></section>
+  <section><h2>설계 결정</h2><dl id="decisions"></dl></section>
+  <section><h2>기능 타임라인</h2><ol class="timeline" id="timeline"></ol></section>
+  <section><h2>영역별 이해도</h2><div id="scores"></div></section>
+  <section><h2>틀린 문제와 해설</h2><div id="wrong"></div></section>
+  <section><h2>다음에 공부할 것</h2><ul id="next"></ul></section>
+</main>
+<script src="report-data.js"></script>
+<script id="classmate-logic">
+(function () {
+  const AREAS = ['구조', '코드', '데이터 흐름', '설계 이유', '문제 해결'];
+  const POINTS = { 맞음: 1, 부분: 0.5, 틀림: 0 };
+
+  function allQuestions(data) {
+    const fromFeatures = (data.features || []).flatMap((f) =>
+      (f.questions || []).map((q) => Object.assign({}, q, { source: f.name })));
+    const fromReviews = (data.reviews || []).flatMap((r) =>
+      (r.questions || []).map((q) => Object.assign({}, q, { source: '복습 ' + r.date })));
+    return fromFeatures.concat(fromReviews);
+  }
+
+  // 맞음 1, 부분 0.5, 틀림 0. 미응답과 알 수 없는 값은 계산에서 뺀다
+  function computeAreaScores(data) {
+    const scores = {};
+    AREAS.forEach((a) => { scores[a] = { score: 0, total: 0, percent: null }; });
+    allQuestions(data).forEach((q) => {
+      const s = Object.prototype.hasOwnProperty.call(scores, q.area) ? scores[q.area] : null;
+      if (!s || !Object.prototype.hasOwnProperty.call(POINTS, q.result)) return;
+      s.score += POINTS[q.result];
+      s.total += 1;
+    });
+    AREAS.forEach((a) => {
+      const s = scores[a];
+      s.percent = s.total ? Math.round((s.score / s.total) * 100) : null;
+    });
+    return scores;
+  }
+
+  function wrongQuestions(data) {
+    return allQuestions(data).filter((q) => q.result === '틀림' || q.result === '부분');
+  }
+
+  function showStructureText(doc) {
+    const d = doc || document;
+    const text = d.getElementById('structure-text');
+    if (!text.textContent) text.textContent = '기록 없음';
+    d.querySelector('.diagram').hidden = true;
+    text.hidden = false;
+  }
+
+  // 사용자 데이터는 모두 textContent로 넣는다(코드나 HTML이 섞여도 글자 그대로 보이게)
+  function render(data, doc) {
+    const $ = (id) => doc.getElementById(id);
+    const el = (tag, text, cls) => {
+      const n = doc.createElement(tag);
+      if (text != null) n.textContent = text;
+      if (cls) n.className = cls;
+      return n;
+    };
+    const listOrEmpty = (items, make) => (items.length ? items.map(make) : [el('li', '기록 없음', 'muted')]);
+
+    $('project').textContent = data.project || '이름 없는 프로젝트';
+    $('summary').textContent = data.summary || '';
+    $('meta').textContent = [data.generatedAt && '생성일 ' + data.generatedAt, data.level && '난이도 ' + data.level]
+      .filter(Boolean).join(' · ');
+    doc.title = (data.project ? data.project + ' · ' : '') + 'classmate 리포트';
+
+    const structure = data.structure || {};
+    $('mermaid').textContent = structure.mermaid || '';
+    $('structure-text').textContent = structure.text || '';
+    if (!structure.mermaid) showStructureText(doc);
+
+    $('flows').replaceChildren(...listOrEmpty(data.flows || [], (f) => el('li', f)));
+
+    const decisions = data.decisions || [];
+    $('decisions').replaceChildren(...(decisions.length
+      ? decisions.flatMap((d) => {
+        const why = d.why || '기록 없음';
+        return [el('dt', d.feature), el('dd', why, why === '기록 없음' ? 'muted' : '')];
+      })
+      : [el('dd', '기록 없음', 'muted')]));
+
+    $('timeline').replaceChildren(...listOrEmpty(data.features || [], (f) => {
+      const li = el('li', (f.date ? f.date + ' ' : '') + f.name);
+      const qs = f.questions || [];
+      const answered = qs.filter((q) => q.result && q.result !== '미응답');
+      const right = answered.filter((q) => q.result === '맞음').length;
+      li.append(el('span', f.status === 'deferred'
+        ? '미룸 · ' + (qs.length - answered.length) + '문제 남음'
+        : right + '/' + qs.length + ' 맞음', 'badge'));
+      return li;
+    }));
+
+    const scores = computeAreaScores(data);
+    $('scores').replaceChildren(...AREAS.map((a) => {
+      const s = scores[a];
+      const row = el('div', null, 'score');
+      const bar = el('div', null, 'bar');
+      const fill = el('span');
+      fill.style.width = (s.percent || 0) + '%';
+      bar.append(fill);
+      bar.setAttribute('role', 'img');
+      bar.setAttribute('aria-label', a + ' ' + (s.percent == null ? '기록 없음' : s.percent + '%'));
+      row.append(el('span', a), bar,
+        el('span', s.percent == null ? '기록 없음' : s.percent + '% (' + s.total + ')', 'value' + (s.percent == null ? ' muted' : '')));
+      return row;
+    }));
+
+    const wrong = wrongQuestions(data);
+    $('wrong').replaceChildren(...(wrong.length ? wrong.map((q) => {
+      const box = el('div', null, 'wrong');
+      const tag = el('p', q.source + ' · ' + q.area + ' · ', 'tag');
+      tag.append(el('span', q.result, 'result-' + q.result));
+      const dl = el('dl');
+      dl.append(el('dt', '내 답'), el('dd', q.userAnswer || '(답 없음)'),
+        el('dt', '정답'), el('dd', q.answer || ''),
+        el('dt', '해설'), el('dd', q.explanation || ''));
+      box.append(tag, el('p', q.question, 'q'), dl);
+      return box;
+    }) : [el('p', '틀린 문제가 없어요.', 'muted')]));
+
+    $('next').replaceChildren(...listOrEmpty(data.nextSteps || [], (n) => el('li', n)));
+  }
+
+  window.ClassmateReport = { computeAreaScores, wrongQuestions, render, showStructureText };
+
+  if (typeof document !== 'undefined') {
+    if (window.CLASSMATE_DATA) render(window.CLASSMATE_DATA, document);
+    else document.getElementById('project').textContent = 'report-data.js를 찾지 못했어요';
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js" onerror="ClassmateReport.showStructureText()"></script>
+<script>
+  // 오프라인이거나 그림을 못 그리면 구조 설명 글로 대신한다
+  (function () {
+    const node = document.getElementById('mermaid');
+    if (!window.mermaid || !node.textContent) return;
+    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: dark ? 'dark' : 'default' });
+    mermaid.run({ nodes: [node] }).catch(() => ClassmateReport.showStructureText());
+  })();
+</script>
+</body>
+</html>
