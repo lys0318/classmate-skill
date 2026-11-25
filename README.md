@@ -43,15 +43,17 @@ New-Item -ItemType Directory -Force "$HOME\.agents\skills" | Out-Null; Copy-Item
 
 ## 사용법
 
-학습할 프로젝트에서 `on`을 한 번 실행하면 됩니다. 그 뒤로는 기능을 완성할 때마다 classmate가 알아서 끼어듭니다. 오타 수정이나 설정 변경처럼 작은 작업에는 끼어들지 않습니다.
+학습할 프로젝트에서 `on`을 한 번 실행하면 됩니다. 그 뒤로는 기능을 완성할 때마다 고른 모드에 따라 classmate가 기록하거나 퀴즈를 냅니다. 오타 수정이나 설정 변경처럼 작은 작업에는 끼어들지 않습니다. 이미 완성된 프로젝트는 `learn`으로 공부할 수 있습니다.
 
 | Claude Code | Codex | 하는 일 |
 |---|---|---|
 | `/classmate on` | `$classmate on` | 이 프로젝트에서 켜기 |
 | `/classmate off` | `$classmate off` | 끄기 (학습 기록은 남음) |
-| `/classmate` | `$classmate` | 지금 바로 최근 작업을 설명하고 퀴즈. 미룬 퀴즈가 있으면 먼저 |
+| `/classmate` | `$classmate` | 지금 바로 퀴즈. 미룬 퀴즈와 기록만 된 기능이 있으면 먼저 |
 | `/classmate level 입문\|중급\|고급` | `$classmate level …` | 난이도 바꾸기 |
+| `/classmate mode 가볍게\|꼼꼼하게\|직접만` | `$classmate mode …` | 빈도 모드 바꾸기 |
 | `/classmate review` | `$classmate review` | 프로젝트 전체 복습, 종합 퀴즈, 이해도 리포트 |
+| `/classmate learn [장 번호]` | `$classmate learn …` | 완성된 프로젝트를 장 단위로 공부하기 (`on` 없이 동작) |
 
 **처음 `on`을 실행할 때**는 개인 전역 지침 파일(Claude Code는 `~/.claude/CLAUDE.md`, Codex는 `~/.codex/AGENTS.md`)에 아래 블록을 넣어도 되는지 묻습니다. 이 블록이 있어야 기능을 완성할 때 자동으로 실행됩니다. 블록은 `.classmate/`가 켜진 프로젝트에서만 동작합니다.
 
@@ -61,6 +63,18 @@ New-Item -ItemType Directory -Force "$HOME\.agents\skills" | Out-Null; Copy-Item
 기능 하나를 완성했을 때 classmate 스킬을 실행해 설명과 이해도 퀴즈를 제공한다.
 <!-- classmate:end -->
 ```
+
+### 빈도 모드
+
+`on` 할 때 고르고, `mode` 명령으로 언제든 바꿀 수 있습니다.
+
+| 모드 | 기능을 완성하면 | 추가 토큰(대략) |
+|---|---|---|
+| 가볍게 (기본) | 설명 4줄짜리 노트만 남기고 한 줄로 알림. 퀴즈는 `review`나 `/classmate` 때 몰아서. 노트가 5개 쌓일 때마다 중간 점검을 제안 | 기능당 2~3천 |
+| 꼼꼼하게 | 바로 설명하고 퀴즈 3문제 (나중으로 미루기 가능) | 기능당 약 1만 |
+| 직접만 | 아무것도 안 함. 직접 부를 때만 동작 | 0 |
+
+가볍게가 기본인 이유: "왜 이렇게 만들었는지"와 "어떤 문제를 어떻게 풀었는지"는 그 순간의 대화에만 남아서, 나중에 한꺼번에 하면 기록할 수 없습니다. 기록은 매번 싸게 남기고, 비싼 퀴즈는 몰아서 냅니다.
 
 ### 난이도
 
@@ -85,6 +99,30 @@ New-Item -ItemType Directory -Force "$HOME\.agents\skills" | Out-Null; Copy-Item
 2. 미룬 퀴즈, 틀렸던 개념, 전체 구조를 묶어 종합 퀴즈 5~10문제를 냅니다.
 3. 브라우저에서 이해도 리포트(`.classmate/report.html`)를 엽니다. 구조도, 기능 타임라인, 다섯 영역별 이해도, 틀린 문제와 해설, 다음에 공부할 것이 들어 있습니다. 서버 없이 파일 하나로 열리고, 구조도는 인터넷이 연결돼 있을 때 그림으로 그려집니다.
 
+### 완성된 프로젝트로 공부하기 (`learn`)
+
+스킬을 나중에 설치했거나, 공부하려고 받은 남의 프로젝트(오픈소스 등)도 쓸 수 있습니다. 프로젝트 폴더에서 `/classmate learn`을 실행하세요. 전역 지침 파일은 건드리지 않습니다.
+
+```
+/classmate learn
+── 프로젝트 지도: todo-app ─────────────
+무엇  : 할 일을 추가·완료·삭제하는 웹 앱
+실행  : index.html을 브라우저로 열기
+구조  : index.html(화면) · app.js(동작) · style.css(모양)
+
+장 목록
+  1. 화면 뼈대와 시작          ← 다음
+  2. 할 일 추가 흐름
+  3. 완료·삭제와 이벤트 위임
+  4. 저장과 불러오기
+어느 장부터 볼까요?  (번호 / 처음부터)
+```
+
+- 처음에는 README, 폴더 구조, 설정 파일, 진입점만 읽어서 지도와 장 목록을 만듭니다. `node_modules` 같은 폴더는 읽지 않습니다.
+- 장마다 그 장의 파일만 읽어서 쉽게 설명하고 퀴즈 3문제를 냅니다. 진행 상황은 `.classmate/learn.md`에 남아 다음 세션에 `/classmate learn`으로 이어집니다.
+- 설계 이유는 내 프로젝트면 "그때 왜 이렇게 하셨는지" 물어서 기록하고, 남의 프로젝트면 README·커밋 메시지·주석에서 찾아 **출처를 붙인 추정**으로만 씁니다.
+- 다 끝나면 `review`로 종합 퀴즈와 리포트를 받습니다.
+
 ## 학습 기록
 
 기록은 프로젝트의 `.classmate/` 폴더에 쌓입니다.
@@ -92,7 +130,8 @@ New-Item -ItemType Directory -Force "$HOME\.agents\skills" | Out-Null; Copy-Item
 ```
 .classmate/
 ├─ .gitignore      # 내용은 * 한 줄. 이 폴더는 커밋되지 않습니다
-├─ config.json     # 켜짐 여부, 난이도
+├─ config.json     # 켜짐 여부, 난이도, 모드
+├─ learn.md        # learn의 프로젝트 지도와 장 진행 상황
 ├─ features/
 │  └─ 001-할-일-추가.md   # 기능별 학습 노트 (설명, 문제, 내 답, 해설)
 ├─ reviews/
