@@ -129,3 +129,33 @@ S5~S10의 공통 맥락: 전역 지침 파일에 classmate 블록이 들어 있�
 - INPUT: S5와 같다.
 - ANSWERS: 없음. 질문을 보낸 즉시 멈춘다.
 - 확인: 답을 받기 전에 이미 노트가 미룸 상태로 저장돼 있다.
+
+S1·S3의 답 끝에 모드 `가볍게`, S2의 답 끝에 모드 `꼼꼼하게`를 더한다. S5~S14는 `prep_app`이 모드를 `꼼꼼하게`로 둔다.
+
+### S15 가볍게, 두 기능을 한 번에
+- AGENT: Claude Code
+- CONTEXT: S10과 같다. config 모드는 `가볍게`.
+- INPUT: S10과 같다.
+- ANSWERS: 없음
+- 확인: 대화창의 classmate 알림이 한 줄뿐이고, 질문을 하지 않았다.
+
+### S16 가볍게, 다섯 번째 기록에서 중간 점검 제안
+- AGENT: Claude Code
+- CONTEXT: S5와 같다. config 모드는 `가볍게`. noted 노트 001~004가 이미 있다.
+- INPUT: S5와 같다.
+- ANSWERS: 없음
+- 확인: 기록 알림 한 줄 뒤에 `기록이 5개 쌓였어요` 제안 한 줄이 붙었다.
+
+### S17 직접만
+- AGENT: Claude Code
+- CONTEXT: S5와 같다. config 모드는 `직접만`.
+- INPUT: S5와 같다.
+- ANSWERS: 없음
+- 확인: classmate를 실행하지 않았다.
+
+### S18 mode 명령
+- AGENT: Claude Code
+- CONTEXT: 이 프로젝트에서 classmate를 이미 켜 두었다(모드 꼼꼼하게).
+- INPUT: `/classmate mode 직접만`
+- ANSWERS: 없음
+- 확인: 바뀐 모드를 알리고, 다른 설정은 그대로 두었다.

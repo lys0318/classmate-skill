@@ -22,8 +22,10 @@ BLOCK='<!-- classmate:start -->
 enabled_project() { # $1 = level
   mkdir -p "$C"
   printf '*\n' > "$C/.gitignore"
-  printf '{"enabled": true, "level": "%s"}\n' "$1" > "$C/config.json"
+  printf '{"enabled": true, "level": "%s", "mode": "꼼꼼하게"}\n' "$1" > "$C/config.json"
 }
+# prep_app 직후 전용: 모드만 바꾼 config로 다시 쓴다
+set_mode() { printf '{"enabled": true, "level": "중급", "mode": "%s"}\n' "$1" > "$C/config.json"; }
 
 prep_S1() { mkdir -p "$T/home" "$P"; }
 check_S1() {
@@ -31,6 +33,7 @@ check_S1() {
   valid
   expect "level" "$(cfg level)" "중급"
   expect "enabled" "$(cfg enabled)" "true"
+  expect "mode" "$(cfg mode)" "가볍게"
 }
 
 prep_S2() {
@@ -42,6 +45,7 @@ check_S2() {
   expect "기존 규칙 보존" "$(grep -c '^# 내 규칙$' "$T/home/.claude/CLAUDE.md")" 1
   valid
   expect "level" "$(cfg level)" "고급"
+  expect "mode" "$(cfg mode)" "꼼꼼하게"
 }
 
 prep_S3() { mkdir -p "$T/home" "$P"; }
@@ -50,6 +54,7 @@ check_S3() {
   expect "~/.claude 안 만듦" "$([ -e "$T/home/.claude" ] && echo 있음 || echo 없음)" "없음"
   valid
   expect "level" "$(cfg level)" "입문"
+  expect "mode" "$(cfg mode)" "가볍게"
 }
 
 prep_S4() {
@@ -162,6 +167,39 @@ check_S13() {
   expect "status" "$(status "$f")" "deferred"
   expect "미응답 3개" "$(grep -c '^결과: 미응답' "$f" 2>/dev/null)" 3
   expect "코드 변경 없음" "$(diff -r "$REPO/tests/fixtures/sample-app" "$P" -x .classmate >/dev/null && echo 없음 || echo 있음)" "없음"
+}
+
+nnoted() { grep -l '^status: noted' "$C"/features/*.md 2>/dev/null | wc -l | tr -d ' '; }
+
+prep_S15() { prep_app; set_mode 가볍게; }
+check_S15() {
+  valid
+  expect "노트 2개" "$(nfeat)" 2
+  expect "모두 noted" "$(nnoted)" 2
+  expect "문제 없음" "$(qcount "$C"/features/*.md)" 0
+}
+
+prep_S16() {
+  prep_app; set_mode 가볍게; mkdir -p "$C/features"
+  local n; for n in 1 2 3 4; do
+    sed -e "s/^id: 001/id: 00$n/" -e "s/^feature: .*/feature: 기능 $n/" "$REPO/tests/fixtures/noted-note.md" > "$C/features/00$n-기능-$n.md"
+  done
+}
+check_S16() {
+  valid
+  expect "노트 5개" "$(nfeat)" 5
+  expect "모두 noted" "$(nnoted)" 5
+  expect "새 노트 005" "$(ls "$C"/features/005-*.md >/dev/null 2>&1 && echo 있음 || echo 없음)" "있음"
+}
+
+prep_S17()  { prep_app; set_mode 직접만; }
+check_S17() { expect "노트 없음" "$(nfeat)" 0; }
+
+prep_S18() { prep_app; }
+check_S18() {
+  valid
+  expect "mode" "$(cfg mode)" "직접만"
+  expect "level 그대로" "$(cfg level)" "중급"
 }
 
 [ "$cmd" = prep ] && set -e  # 준비가 하나라도 실패하면 종료 코드 1
