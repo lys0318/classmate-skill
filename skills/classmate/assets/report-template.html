@@ -105,6 +105,14 @@
     return scores;
   }
 
+  function timelineBadge(f) {
+    const qs = f.questions || [];
+    if (f.status === 'noted') return '기록만';
+    const left = qs.filter((q) => !q.result || q.result === '미응답').length;
+    if (f.status === 'deferred') return '미룸 · ' + left + '문제 남음';
+    return qs.filter((q) => q.result === '맞음').length + '/' + qs.length + ' 맞음';
+  }
+
   function wrongQuestions(data) {
     return allQuestions(data).filter((q) => q.result === '틀림' || q.result === '부분');
   }
@@ -151,12 +159,7 @@
 
     $('timeline').replaceChildren(...listOrEmpty(data.features || [], (f) => {
       const li = el('li', (f.date ? f.date + ' ' : '') + f.name);
-      const qs = f.questions || [];
-      const answered = qs.filter((q) => q.result && q.result !== '미응답');
-      const right = answered.filter((q) => q.result === '맞음').length;
-      li.append(el('span', f.status === 'deferred'
-        ? '미룸 · ' + (qs.length - answered.length) + '문제 남음'
-        : right + '/' + qs.length + ' 맞음', 'badge'));
+      li.append(el('span', timelineBadge(f), 'badge'));
       return li;
     }));
 
@@ -191,7 +194,7 @@
     $('next').replaceChildren(...listOrEmpty(data.nextSteps || [], (n) => el('li', n)));
   }
 
-  window.ClassmateReport = { computeAreaScores, wrongQuestions, render, showStructureText };
+  window.ClassmateReport = { computeAreaScores, wrongQuestions, timelineBadge, render, showStructureText };
 
   if (typeof document !== 'undefined') {
     if (window.CLASSMATE_DATA) render(window.CLASSMATE_DATA, document);

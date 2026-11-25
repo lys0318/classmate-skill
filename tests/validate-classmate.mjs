@@ -5,6 +5,8 @@ import { join } from 'node:path';
 import vm from 'node:vm';
 
 const LEVELS = ['입문', '중급', '고급'];
+const MODES = ['가볍게', '꼼꼼하게', '직접만'];
+const STATUSES = ['done', 'deferred', 'noted'];
 const AREAS = ['구조', '코드', '데이터 흐름', '설계 이유', '문제 해결'];
 const TEMPLATE = new URL('../skills/classmate/assets/report-template.html', import.meta.url);
 const RESULTS = ['맞음', '부분', '틀림', '미응답'];
@@ -59,10 +61,18 @@ function checkFeatures(dir, problems) {
     if (fm.id !== f.slice(0, 3)) problems.push(`${label}: id(${fm.id})가 파일 번호와 다름`);
     if (!fm.feature) problems.push(`${label}: feature 없음`);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(fm.date ?? '')) problems.push(`${label}: date가 YYYY-MM-DD가 아님`);
-    if (!['done', 'deferred'].includes(fm.status)) problems.push(`${label}: status가 done|deferred가 아님`);
+    if (!STATUSES.includes(fm.status)) problems.push(`${label}: status가 ${STATUSES.join('|')} 중 하나가 아님`);
     if (!LEVELS.includes(fm.level)) problems.push(`${label}: level이 ${LEVELS.join('|')} 중 하나가 아님`);
+    if (fm.kind !== undefined) {
+      if (fm.kind !== 'learn') problems.push(`${label}: kind가 learn이 아님`);
+      else if (!/^[1-9]\d*$/.test(fm.chapter ?? '')) problems.push(`${label}: learn 노트의 chapter가 양의 정수가 아님`);
+    }
     if (!/^## 설명$/m.test(text)) problems.push(`${label}: '## 설명' 없음`);
     const at = text.search(/^## 퀴즈$/m);
+    if (fm.status === 'noted') {
+      if (at >= 0) problems.push(`${label}: noted인데 퀴즈 절이 있음`);
+      continue;
+    }
     if (at < 0) { problems.push(`${label}: '## 퀴즈' 없음`); continue; }
     const results = checkQuiz(text.slice(at), label, problems);
     if (fm.status === 'done' && results.includes('미응답')) problems.push(`${label}: done인데 미응답 문제가 있음`);
@@ -81,6 +91,8 @@ function checkBase(dir, problems) {
   try { cfg = JSON.parse(read(cfgPath)); } catch (e) { return problems.push(`config.json JSON 오류: ${e.message}`); }
   if (typeof cfg.enabled !== 'boolean') problems.push('config.json: enabled가 boolean이 아님');
   if (!LEVELS.includes(cfg.level)) problems.push(`config.json: level이 ${LEVELS.join('|')} 중 하나가 아님`);
+  // mode가 없으면 가볍게로 본다(먼저 설치한 사용자의 config)
+  if (cfg.mode !== undefined && !MODES.includes(cfg.mode)) problems.push(`config.json: mode가 ${MODES.join('|')} 중 하나가 아님`);
 }
 
 function checkReviews(dir, problems) {
@@ -98,6 +110,27 @@ function checkReviews(dir, problems) {
     if (at < 0) problems.push(`${label}: '## 퀴즈' 없음`);
     else checkQuiz(text.slice(at), label, problems);
   }
+}
+
+// learn.md: frontmatter와 장 목록 표(장 번호는 1부터 빠짐없이, 상태는 대기|완료)
+function checkLearn(dir, problems) {
+  const p = join(dir, 'learn.md');
+  if (!existsSync(p)) return;
+  const text = read(p);
+  const fm = frontmatter(text);
+  if (!fm) return problems.push('learn.md: frontmatter 없음');
+  if (fm.type !== 'learn') problems.push('learn.md: type이 learn이 아님');
+  if (!['본인', '다른 사람'].includes(fm.owner)) problems.push('learn.md: owner가 본인|다른 사람이 아님');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fm.started ?? '')) problems.push('learn.md: started가 YYYY-MM-DD가 아님');
+  const at = text.search(/^## 장 목록$/m);
+  if (at < 0) return problems.push("learn.md: '## 장 목록' 없음");
+  const rows = text.slice(at).split('\n').filter((l) => l.startsWith('|')).slice(2); // 머리줄과 구분줄 제외
+  if (!rows.length) problems.push('learn.md: 장이 없음');
+  rows.forEach((row, n) => {
+    const m = row.match(/^\| (\d+) \| (.+?) \| (.+?) \| (대기|완료) \|$/);
+    if (!m) problems.push(`learn.md: 장 목록 ${n + 1}번째 줄 형식 오류(상태는 대기|완료): ${row}`);
+    else if (Number(m[1]) !== n + 1) problems.push(`learn.md: 장 번호가 ${n + 1}이어야 하는데 ${m[1]}`);
+  });
 }
 
 function checkQuestions(qs, label, problems) {
@@ -135,7 +168,8 @@ function checkReportData(dir, problems) {
     const l = `report-data.js features ${n + 1}`;
     if (!/^\d{3}$/.test(f?.id ?? '')) problems.push(`${l}: id가 3자리가 아님`);
     if (typeof f?.name !== 'string') problems.push(`${l}: name 없음`);
-    if (!['done', 'deferred'].includes(f?.status)) problems.push(`${l}: status 오류`);
+    if (!STATUSES.includes(f?.status)) problems.push(`${l}: status 오류`);
+    if (f?.status === 'noted' && f.questions?.length) problems.push(`${l}: noted 기능인데 questions가 비어 있지 않음`);
     checkQuestions(f?.questions, l, problems);
   });
   (d.reviews ?? []).forEach((r, n) => checkQuestions(r?.questions, `report-data.js reviews ${n + 1}`, problems));
@@ -158,6 +192,7 @@ checkBase(dir, problems);
 checkFeatures(dir, problems);
 checkReviews(dir, problems);
 checkReportData(dir, problems);
+checkLearn(dir, problems);
 if (problems.length) {
   console.log(problems.map((p) => `- ${p}`).join('\n'));
   process.exit(1);

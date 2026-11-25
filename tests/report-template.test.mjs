@@ -42,3 +42,15 @@ test('알 수 없는 결과 값은 점수에서 제외', () => {
   const s = plain(R.computeAreaScores(odd));
   assert.deepEqual(s['구조'], { score: 0, total: 0, percent: null });
 });
+
+test('timelineBadge: noted는 기록만', () => {
+  assert.equal(R.timelineBadge({ status: 'noted', questions: [] }), '기록만');
+});
+
+test('timelineBadge: deferred는 남은 수', () => {
+  assert.equal(R.timelineBadge({ status: 'deferred', questions: [{ result: '미응답' }, { result: '미응답' }, { result: '맞음' }] }), '미룸 · 2문제 남음');
+});
+
+test('timelineBadge: done은 맞힌 수', () => {
+  assert.equal(R.timelineBadge({ status: 'done', questions: [{ result: '맞음' }, { result: '틀림' }, { result: '부분' }] }), '1/3 맞음');
+});
