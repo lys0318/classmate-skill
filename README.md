@@ -25,7 +25,7 @@ Claude Code 안에서 두 줄을 입력합니다. 터미널에서는 `/plugin` �
 /plugin install classmate@classmate-skill
 ```
 
-- 플러그인으로 설치하면 명령 앞에 플러그인 이름이 붙습니다. 아래 사용법의 `/classmate on`은 `/classmate:classmate on`으로 입력하세요.
+- 플러그인으로 설치하면 명령이 `/classmate:on`, `/classmate:review`처럼 나뉘어 `/` 목록에 따로 뜹니다. 인자 없이 부르는 `/classmate`만 `/classmate:classmate`입니다.
 - 새 버전 받기: `/plugin marketplace update classmate-skill`. `/plugin`의 Marketplaces에서 이 마켓플레이스의 자동 업데이트를 켜 두면 알아서 받습니다.
 
 ### 직접 복사해서 설치 (Codex, 또는 짧은 `/classmate`로 쓰고 싶을 때)
@@ -59,17 +59,17 @@ New-Item -ItemType Directory -Force "$HOME\.agents\skills" | Out-Null; Copy-Item
 
 학습할 프로젝트에서 `on`을 한 번 실행하면 됩니다. 그 뒤로는 기능을 완성할 때마다 고른 모드에 따라 classmate가 기록하거나 퀴즈를 냅니다. 오타 수정이나 설정 변경처럼 작은 작업에는 끼어들지 않습니다. 이미 완성된 프로젝트는 `learn`으로 공부할 수 있습니다.
 
-| Claude Code | Codex | 하는 일 |
-|---|---|---|
-| `/classmate on` | `$classmate on` | 이 프로젝트에서 켜기 |
-| `/classmate off` | `$classmate off` | 끄기 (학습 기록은 남음) |
-| `/classmate` | `$classmate` | 지금 바로 퀴즈. 미룬 퀴즈와 기록만 된 기능이 있으면 먼저 |
-| `/classmate level 입문\|중급\|고급` | `$classmate level …` | 난이도 바꾸기 |
-| `/classmate mode 가볍게\|꼼꼼하게\|직접만` | `$classmate mode …` | 빈도 모드 바꾸기 |
-| `/classmate review` | `$classmate review` | 프로젝트 전체 복습, 종합 퀴즈, 이해도 리포트 |
-| `/classmate learn [장 번호]` | `$classmate learn …` | 완성된 프로젝트를 장 단위로 공부하기 (`on` 없이 동작) |
+| Claude Code (플러그인) | Claude Code (복사 설치) | Codex | 하는 일 |
+|---|---|---|---|
+| `/classmate:on` | `/classmate on` | `$classmate on` | 이 프로젝트에서 켜기 |
+| `/classmate:off` | `/classmate off` | `$classmate off` | 끄기 (학습 기록은 남음) |
+| `/classmate:classmate` | `/classmate` | `$classmate` | 지금 바로 퀴즈. 미룬 퀴즈와 기록만 된 기능이 있으면 먼저 |
+| `/classmate:level 입문\|중급\|고급` | `/classmate level …` | `$classmate level …` | 난이도 바꾸기 |
+| `/classmate:mode 가볍게\|꼼꼼하게\|직접만` | `/classmate mode …` | `$classmate mode …` | 빈도 모드 바꾸기 |
+| `/classmate:review` | `/classmate review` | `$classmate review` | 프로젝트 전체 복습, 종합 퀴즈, 이해도 리포트 |
+| `/classmate:learn [장 번호]` | `/classmate learn …` | `$classmate learn …` | 완성된 프로젝트를 장 단위로 공부하기 (`on` 없이 동작) |
 
-마켓플레이스로 설치했다면 Claude Code 명령의 `/classmate`를 `/classmate:classmate`로 바꿔 입력하세요.
+아래 설명은 복사 설치 기준(`/classmate review`)으로 적었습니다. 플러그인으로 설치했다면 `/classmate:review`처럼 바꿔 읽으세요.
 
 **처음 `on`을 실행할 때**는 개인 전역 지침 파일(Claude Code는 `~/.claude/CLAUDE.md`, Codex는 `~/.codex/AGENTS.md`)에 아래 블록을 넣어도 되는지 묻습니다. 이 블록이 있어야 기능을 완성할 때 자동으로 실행됩니다. 블록은 `.classmate/`가 켜진 프로젝트에서만 동작합니다.
 
