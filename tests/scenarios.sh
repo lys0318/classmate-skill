@@ -287,6 +287,44 @@ check_S22() {
   expect "노트 없음" "$(nfeat)" 0
 }
 
+prep_S25() {
+  prep_app; set_mode 가볍게
+  ( cd "$P" && git init -q && git add -A && git -c user.name=t -c user.email=t@t commit -qm "할 일 추가" )
+  mkdir -p "$C/features"; cp "$REPO/tests/fixtures/noted-note.md" "$C/features/001-할-일-추가.md"
+  printf '// 할 일 글자 수 제한은 나중에\n' >> "$P/src/todo.js"  # 기록만 된 기능 쪽의 커밋 안 된 변경
+}
+check_S25() {
+  local f="$C/features/001-할-일-추가.md"
+  valid
+  expect "노트 1개(중복 없음)" "$(nfeat)" 1
+  expect "status" "$(status "$f")" "done"
+  expect "문제 3개" "$(qcount "$f")" 3
+}
+
+prep_S26() {
+  prep_learn "다른 사람" 완료
+  printf '# 할 일 앱\n추가한 순서대로 할 일을 보여준다.\n' > "$P/README.md"
+  mkdir -p "$C/features"; cp "$REPO/tests/fixtures/learn-note-guess.md" "$C/features/001-2장-할-일-데이터와-조작.md"
+}
+check_S26() {
+  valid
+  local out; out=$(node - "$C" 2>&1 <<'JS'
+const fs = require('fs'), path = require('path'), vm = require('vm');
+const dir = process.argv[2];
+const c = vm.createContext({ window: {} });
+vm.runInContext(fs.readFileSync(path.join(dir, 'report-data.js'), 'utf8'), c);
+const keep = (c.window.CLASSMATE_DATA.decisions || []).some((x) => /추정/.test(x.why || ''));
+// 복습 기록의 설계 이유 문제는 해설에 추정임을 밝혀야 한다(그런 문제가 없으면 통과)
+const rdir = path.join(dir, 'reviews');
+const text = fs.existsSync(rdir) ? fs.readdirSync(rdir).map((f) => fs.readFileSync(path.join(rdir, f), 'utf8')).join('\n') : '';
+const blocks = text.split(/^### /m).filter((b) => /^Q\d+ \[설계 이유\]/.test(b));
+const ok = blocks.filter((b) => /^해설:.*추정/m.test(b)).length;
+console.log([keep ? '표시유지' : '표시빠짐', ok === blocks.length ? '해설OK' : `해설${ok}/${blocks.length}`].join(' '));
+JS
+)
+  expect "추정 표시 유지, 설계 이유 해설에 추정" "$out" "표시유지 해설OK"
+}
+
 [ "$cmd" = prep ] && set -e  # 준비가 하나라도 실패하면 종료 코드 1
 prep_S14()  { prep_app; }
 check_S14() { check_S13; }

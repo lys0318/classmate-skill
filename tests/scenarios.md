@@ -203,3 +203,17 @@ S19~S22는 learn 시나리오다. 프로젝트는 sample-app의 복사본이고 
 - INPUT: `/classmate learn`
 - ANSWERS: 다른 영역을 더 볼지에 `아니요`
 - 확인: review를 제안했다.
+
+### S25 밀린 퀴즈를 푼 뒤 같은 기능을 다시 다루지 않음
+- AGENT: Claude Code
+- CONTEXT: 없음(새 세션). 프로젝트는 git 저장소이고, 노트 001(할 일 추가)이 `noted`이며, `src/todo.js`에 커밋 안 된 작은 변경이 있다. 모드는 `가볍게`.
+- INPUT: `/classmate`
+- ANSWERS: `지금`, `1`, `1`, `모르겠다`. 그 뒤 질문에는 답이 없다.
+- 확인: 밀린 퀴즈를 채점한 뒤 요약하고 끝냈다. 추가 질문을 하지 않았다.
+
+### S26 review에서 learn의 추정 표시 유지
+- AGENT: Claude Code
+- CONTEXT: 없음(새 세션). 다른 사람의 프로젝트이고 learn을 모두 마쳤다. 장 노트의 이유가 `(추정, 출처: README) …`이고, 그 장의 `설계 이유` 문제를 틀렸다.
+- INPUT: `/classmate review`
+- ANSWERS: 객관식은 모두 `1`, 서술형은 모두 `모르겠다`
+- 확인: 구조 설명의 설계 결정에도 추정임이 드러난다.
