@@ -26,7 +26,7 @@ classmate는 이 문제를 막는 스킬입니다. 기능 하나를 완성할 �
 **macOS / Linux**
 
 ```bash
-git clone https://github.com/<your-id>/classmate-skill.git
+git clone https://github.com/lys0318/classmate-skill.git
 mkdir -p ~/.claude/skills && cp -r classmate-skill/skills/classmate ~/.claude/skills/   # Claude Code
 mkdir -p ~/.agents/skills && cp -r classmate-skill/skills/classmate ~/.agents/skills/   # Codex
 ```
@@ -34,7 +34,7 @@ mkdir -p ~/.agents/skills && cp -r classmate-skill/skills/classmate ~/.agents/sk
 **Windows (PowerShell)**
 
 ```powershell
-git clone https://github.com/<your-id>/classmate-skill.git
+git clone https://github.com/lys0318/classmate-skill.git
 New-Item -ItemType Directory -Force "$HOME\.claude\skills" | Out-Null; Copy-Item -Recurse classmate-skill\skills\classmate "$HOME\.claude\skills\"   # Claude Code
 New-Item -ItemType Directory -Force "$HOME\.agents\skills" | Out-Null; Copy-Item -Recurse classmate-skill\skills\classmate "$HOME\.agents\skills\"   # Codex
 ```
