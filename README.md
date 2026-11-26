@@ -16,7 +16,21 @@ classmate는 이 문제를 막는 스킬입니다. 기능 하나를 완성할 �
 
 ## 설치
 
-스킬 폴더 `skills/classmate`를 에이전트의 스킬 폴더로 복사하면 끝입니다. 따로 설치할 프로그램은 없습니다.
+### Claude Code: 마켓플레이스로 설치 (추천)
+
+Claude Code 안에서 두 줄을 입력합니다. 터미널에서는 `/plugin` 대신 `claude plugin`으로 똑같이 하면 됩니다.
+
+```
+/plugin marketplace add lys0318/classmate-skill
+/plugin install classmate@classmate-skill
+```
+
+- 플러그인으로 설치하면 명령 앞에 플러그인 이름이 붙습니다. 아래 사용법의 `/classmate on`은 `/classmate:classmate on`으로 입력하세요.
+- 새 버전 받기: `/plugin marketplace update classmate-skill`. `/plugin`의 Marketplaces에서 이 마켓플레이스의 자동 업데이트를 켜 두면 알아서 받습니다.
+
+### 직접 복사해서 설치 (Codex, 또는 짧은 `/classmate`로 쓰고 싶을 때)
+
+스킬 폴더 `skills/classmate`를 에이전트의 스킬 폴더로 복사하면 끝입니다. 따로 설치할 프로그램은 없습니다. 마켓플레이스로 설치했다면 Claude Code 쪽은 복사하지 마세요. 같은 스킬이 두 번 잡힙니다.
 
 | 에이전트 | 복사할 위치 |
 |---|---|
@@ -54,6 +68,8 @@ New-Item -ItemType Directory -Force "$HOME\.agents\skills" | Out-Null; Copy-Item
 | `/classmate mode 가볍게\|꼼꼼하게\|직접만` | `$classmate mode …` | 빈도 모드 바꾸기 |
 | `/classmate review` | `$classmate review` | 프로젝트 전체 복습, 종합 퀴즈, 이해도 리포트 |
 | `/classmate learn [장 번호]` | `$classmate learn …` | 완성된 프로젝트를 장 단위로 공부하기 (`on` 없이 동작) |
+
+마켓플레이스로 설치했다면 Claude Code 명령의 `/classmate`를 `/classmate:classmate`로 바꿔 입력하세요.
 
 **처음 `on`을 실행할 때**는 개인 전역 지침 파일(Claude Code는 `~/.claude/CLAUDE.md`, Codex는 `~/.codex/AGENTS.md`)에 아래 블록을 넣어도 되는지 묻습니다. 이 블록이 있어야 기능을 완성할 때 자동으로 실행됩니다. 블록은 `.classmate/`가 켜진 프로젝트에서만 동작합니다.
 
@@ -148,7 +164,7 @@ New-Item -ItemType Directory -Force "$HOME\.agents\skills" | Out-Null; Copy-Item
 ## 완전히 지우기
 
 1. 전역 지침 파일(`~/.claude/CLAUDE.md` 또는 `~/.codex/AGENTS.md`)에서 `<!-- classmate:start -->`부터 `<!-- classmate:end -->`까지 지웁니다.
-2. 스킬 폴더(`~/.claude/skills/classmate` 또는 `~/.agents/skills/classmate`)를 지웁니다.
+2. 마켓플레이스로 설치했다면 `/plugin uninstall classmate@classmate-skill`, 복사해서 설치했다면 스킬 폴더(`~/.claude/skills/classmate` 또는 `~/.agents/skills/classmate`)를 지웁니다.
 3. 학습 기록이 필요 없으면 프로젝트의 `.classmate/` 폴더를 지웁니다.
 
 블록만 남아 있어도 `.classmate/`가 없는 프로젝트에서는 아무 일도 하지 않습니다.

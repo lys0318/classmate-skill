@@ -10,7 +10,7 @@ argument-hint: "[on | off | level 입문|중급|고급 | mode 가볍게|꼼꼼�
 
 ## 명령
 
-사용자가 classmate를 부를 때 함께 준 인자를 보고 나눈다. Claude Code에서는 `/classmate <인자>`, Codex에서는 `$classmate <인자>`로 부른다.
+사용자가 classmate를 부를 때 함께 준 인자를 보고 나눈다. Claude Code에서는 `/classmate <인자>`(플러그인으로 설치했으면 `/classmate:classmate <인자>`), Codex에서는 `$classmate <인자>`로 부른다.
 
 | 인자 | 할 일 |
 |---|---|
@@ -46,6 +46,7 @@ argument-hint: "[on | off | level 입문|중급|고급 | mode 가볍게|꼼꼼�
 ## 공통 규칙
 
 - 사용자에게는 사용자가 대화하는 언어로 말한다.
+- 안내 문구에 나오는 `/classmate`는 사용자가 실제로 부르는 방식으로 바꿔 쓴다. 이 스킬 이름이 `classmate:classmate`로 보이면 `/classmate:classmate`, Codex에서는 `$classmate`다.
 - `.classmate/`는 현재 프로젝트 루트의 `.classmate/` 폴더다.
 - 사용자의 `.gitignore`와 프로젝트의 `CLAUDE.md`·`AGENTS.md`는 건드리지 않는다.
 - 파일은 UTF-8(BOM 없음)로 쓴다.
